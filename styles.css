@@ -1,0 +1,83 @@
+:root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-code: #1e1e1e;
+    --text-primary: #212529;
+    --text-secondary: #4b5563;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --sidebar-width: 300px;
+    --danger-bg: #fef2f2;
+    --danger-border: #fca5a5;
+    --danger-text: #991b1b;
+    --success-bg: #f0fdf4;
+    --success-border: #86efac;
+    --success-text: #166534;
+    --info-bg: #eff6ff;
+    --info-border: #93c5fd;
+    --info-text: #1e40af;
+    --tip-bg: #fffbeb;
+    --tip-border: #fcd34d;
+    --tip-text: #92400e;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --accent: #60a5fa;
+    --accent-hover: #3b82f6;
+    --danger-bg: #450a0a;
+    --danger-border: #7f1d1d;
+    --danger-text: #fecaca;
+    --success-bg: #052e16;
+    --success-border: #14532d;
+    --success-text: #bbf7d0;
+    --info-bg: #172554;
+    --info-border: #1e3a8a;
+    --info-text: #bfdbfe;
+    --tip-bg: #422006;
+    --tip-border: #78350f;
+    --tip-text: #fde68a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; display: flex; }
+
+.sidebar { width: var(--sidebar-width); background: var(--bg-secondary); height: 100vh; position: fixed; padding: 2rem 1.5rem; border-right: 1px solid rgba(128,128,128,0.2); overflow-y: auto; }
+.sidebar h2 { font-size: 1.25rem; margin-bottom: 2rem; color: var(--accent); font-weight: 800; letter-spacing: -0.5px; }
+.sidebar nav a { display: block; padding: 0.75rem 1rem; color: var(--text-secondary); text-decoration: none; border-radius: 0.5rem; margin-bottom: 0.25rem; transition: all 0.2s; font-weight: 500; }
+.sidebar nav a:hover, .sidebar nav a.active { background: var(--accent); color: white; }
+
+.main-content { margin-left: var(--sidebar-width); flex: 1; padding: 3rem 4rem; max-width: 1100px; }
+h1 { font-size: 2.5rem; margin-bottom: 1rem; border-bottom: 3px solid var(--accent); padding-bottom: 0.75rem; letter-spacing: -1px; }
+h2 { font-size: 1.75rem; margin: 3rem 0 1rem; color: var(--accent); display: flex; align-items: center; gap: 0.75rem; }
+h3 { font-size: 1.25rem; margin: 2rem 0 0.75rem; color: var(--text-primary); font-weight: 700; }
+p { margin-bottom: 1.25rem; color: var(--text-secondary); }
+code { background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 0.25rem; font-family: 'Fira Code', 'Consolas', monospace; font-size: 0.9em; color: var(--accent); }
+pre { background: var(--bg-code) !important; border-radius: 0.75rem; padding: 1.5rem; overflow-x: auto; margin: 1.5rem 0; border: 1px solid rgba(128,128,128,0.2); }
+
+/* Secciones Pedagógicas */
+.intro-box { background: var(--info-bg); border-left: 4px solid var(--info-border); padding: 1.5rem; border-radius: 0 0.5rem 0.5rem 0; margin-bottom: 2rem; }
+.intro-box h3 { color: var(--info-text); margin-top: 0; }
+
+.hack-case { background: var(--danger-bg); border-left: 4px solid var(--danger-border); padding: 1.5rem; border-radius: 0 0.5rem 0.5rem 0; margin: 2rem 0; }
+.hack-case h4 { color: var(--danger-text); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; }
+
+.defense { background: var(--success-bg); border-left: 4px solid var(--success-border); padding: 1.5rem; border-radius: 0 0.5rem 0.5rem 0; margin: 1.5rem 0 2rem 0; }
+.defense h4 { color: var(--success-text); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; }
+
+.tips-section { background: var(--tip-bg); border: 1px solid var(--tip-border); padding: 1.5rem; border-radius: 0.75rem; margin-top: 3rem; }
+.tips-section h3 { color: var(--tip-text); margin-top: 0; display: flex; align-items: center; gap: 0.5rem; }
+.tips-section ul { margin-left: 1.5rem; color: var(--tip-text); }
+.tips-section li { margin-bottom: 0.5rem; }
+
+.theme-toggle { position: fixed; top: 1.5rem; right: 2rem; background: var(--bg-secondary); border: 1px solid rgba(128,128,128,0.3); color: var(--text-primary); padding: 0.6rem 1rem; border-radius: 2rem; cursor: pointer; font-size: 1.2rem; z-index: 100; transition: all 0.2s; }
+.theme-toggle:hover { transform: scale(1.05); }
+
+@media print {
+    .sidebar, .theme-toggle { display: none; }
+    .main-content { margin: 0; padding: 0; max-width: 100%; }
+    .hack-case, .defense, .tips-section, .intro-box { break-inside: avoid; border: 1px solid #ccc; }
+}

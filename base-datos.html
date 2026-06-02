@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo 2: Base de Datos | PHP Profesional</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+    <aside class="sidebar">
+        <h2>🛡️ PHP Profesional</h2>
+        <nav>
+            <a href="index.html">1. Anatomía y Estructura</a>
+            <a href="base-datos.html">2. Base de Datos Avanzada</a>
+            <a href="seguridad.html">3. Seguridad y Autenticación</a>
+            <a href="arquitectura.html">4. Arquitectura y Validación</a>
+            <a href="recursos.html">5. Checklist y Producción</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <h1>Módulo 2: Conexión a Base de Datos Avanzada</h1>
+        
+        <div class="intro-box">
+            <h3>📌 Introducción</h3>
+            <p>La interacción con la base de datos es el vector de ataque más común (SQL Injection) y el cuello de botella de rendimiento más frecuente. Este módulo profundiza en por qué PDO es el estándar de la industria, cómo implementar el patrón Singleton correctamente y la importancia crítica de desactivar la emulación de consultas preparadas.</p>
+        </div>
+
+        <h2>2.1 PDO vs MySQLi: Análisis Técnico</h2>
+        <div class="development">
+            <p>Ambas extensiones son seguras <em>si se usan con consultas preparadas</em>, pero PDO ofrece ventajas arquitectónicas decisivas para proyectos escalables.</p>
+            <table style="width:100%; border-collapse: collapse; margin: 1.5rem 0; background: var(--bg-secondary); border-radius: 0.5rem; overflow: hidden;">
+                <tr style="background: var(--accent); color: white;">
+                    <th style="padding:1rem; text-align:left;">Característica</th>
+                    <th style="padding:1rem; text-align:left;">PDO (Recomendado)</th>
+                    <th style="padding:1rem; text-align:left;">MySQLi</th>
+                </tr>
+                <tr>
+                    <td style="padding:1rem; border-bottom: 1px solid rgba(128,128,128,0.1);">Soporte de Motores</td>
+                    <td style="padding:1rem; border-bottom: 1px solid rgba(128,128,128,0.1);">12+ (MySQL, PostgreSQL, SQLite, SQL Server)</td>
+                    <td style="padding:1rem; border-bottom: 1px solid rgba(128,128,128,0.1);">Solo MySQL / MariaDB</td>
+                </tr>
+                <tr>
+                    <td style="padding:1rem; border-bottom: 1px solid rgba(128,128,128,0.1);">Parámetros Nombrados</td>
+                    <td style="padding:1rem; border-bottom: 1px solid rgba(128,128,128,0.1);">✅ Sí (<code>:email</code>). Mejora legibilidad en queries complejas.</td>
+                    <td style="padding:1rem; border-bottom: 1px solid rgba(128,128,128,0.1);">❌ No (Solo <code>?</code> posicional)</td>
+                </tr>
+                <tr>
+                    <td style="padding:1rem;">Orientación a Objetos</td>
+                    <td style="padding:1rem;">✅ 100% Nativo y consistente.</td>
+                    <td style="padding:1rem;">⚠️ Híbrido (mezcla estilos procedural y OO, propenso a errores).</td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>2.2 Implementación Robusta del Patrón Singleton</h2>
+        <div class="development">
+            <p>El Singleton garantiza una única instancia de la conexión en toda la ejecución del script, ahorrando recursos. La clave de la seguridad está en las opciones de PDO.</p>
+            <pre><code class="language-php">namespace App\Models;
+use PDO;
+use PDOException;
+
+class Database {
+    private static ?self $instance = null;
+    private PDO $connection;
+
+    // Constructor privado para evitar instanciación externa (new Database())
+    private function __construct() {
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Lanzar excepciones en errores
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Devolver arrays asociativos por defecto
+            PDO::ATTR_EMULATE_PREPARES   => false,                  // ⚠️ CRÍTICO: Fuerza al motor de BD a preparar la query, no a PHP.
+        ];
+
+        try {
+            $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
+        } catch (PDOException $e) {
+            // En producción, registrar en log y mostrar mensaje genérico
+            error_log("Fallo crítico de conexión a BD: " . $e->getMessage());
+            throw new \Exception("Error de conexión al sistema. Intente más tarde.");
+        }
+    }
+
+    public static function getInstance(): self {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+
+    public function getConnection(): PDO {
+        return $this->connection;
+    }
+}</code></pre>
+        </div>
+
+        <div class="hack-case">
+            <h4>🕵️‍♂️ Caso de Hackeo: SQL Injection por Emulación</h4>
+            <p>Si <code>PDO::ATTR_EMULATE_PREPARES</code> está en <code>true</code> (valor por defecto en algunos entornos), PHP simula la preparación. En ciertos edge cases con conjuntos de caracteres extraños, un atacante puede manipular la codificación para "escapar" de las comillas e inyectar SQL, incluso usando <code>prepare()</code>.</p>
+        </div>
+
+        <div class="defense">
+            <h4>🛡️ La Defensa: Desactivar Emulación y Usar Named Parameters</h4>
+            <p>Al establecer <code>ATTR_EMULATE_PREPARES => false</code>, la consulta se envía al motor de base de datos en dos pasos distintos: primero la estructura (compilada), luego los datos (como valores literales, no como código). Es matemáticamente imposible que los datos se ejecuten como SQL.</p>
+            <pre><code class="language-php">$db = Database::getInstance()->getConnection();
+$stmt = $db->prepare("SELECT id, nombre FROM usuarios WHERE email = :email AND estado = :estado");
+// execute recibe un array asociativo que coincide con los named parameters
+$stmt->execute(['email' => $_POST['email'], 'estado' => 'activo']);
+$usuario = $stmt->fetch();</code></pre>
+        </div>
+
+        <h2>2.3 Transacciones ACID para Integridad de Datos</h2>
+        <div class="development">
+            <p>Cuando una operación lógica requiere modificar múltiples tablas (ej: crear un usuario y su registro de auditoría), deben ejecutarse dentro de una transacción. Si una falla, se revierten todos los cambios (<code>ROLLBACK</code>).</p>
+            <pre><code class="language-php">try {
+    $db->beginTransaction();
+
+    $stmt1 = $db->prepare("INSERT INTO usuarios (email, password_hash) VALUES (?, ?)");
+    $stmt1->execute([$email, $hash]);
+    $userId = $db->lastInsertId();
+
+    $stmt2 = $db->prepare("INSERT INTO auditoria (user_id, accion) VALUES (?, ?)");
+    $stmt2->execute([$userId, 'REGISTRO_CREADO']);
+
+    $db->commit(); // Confirma los cambios permanentemente
+} catch (Exception $e) {
+    $db->rollBack(); // Deshace TODO si cualquier query falla
+    error_log("Error en transacción de registro: " . $e->getMessage());
+    throw $e;
+}</code></pre>
+        </div>
+
+        <div class="tips-section">
+            <h3>💡 Conclusiones y Consejos Profesionales</h3>
+            <ul>
+                <li><strong>Nunca</strong> uses interpolación de strings (<code>"SELECT * FROM users WHERE id = $id"</code>) bajo ninguna circunstancia.</li>
+                <li>Usa <code>utf8mb4</code> como charset, no <code>utf8</code>. <code>utf8mb4</code> soporta emojis y caracteres Unicode completos, previniendo vulnerabilidades de codificación.</li>
+                <li>El método <code>lastInsertId()</code> debe llamarse <em>inmediatamente</em> después del <code>INSERT</code> y dentro de la misma conexión, ya que es específico de la sesión.</li>
+            </ul>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

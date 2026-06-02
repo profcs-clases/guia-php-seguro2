@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo 3: Seguridad | PHP Profesional</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+    <aside class="sidebar">
+        <h2>🛡️ PHP Profesional</h2>
+        <nav>
+            <a href="index.html">1. Anatomía y Estructura</a>
+            <a href="base-datos.html">2. Base de Datos Avanzada</a>
+            <a href="seguridad.html">3. Seguridad y Autenticación</a>
+            <a href="arquitectura.html">4. Arquitectura y Validación</a>
+            <a href="recursos.html">5. Checklist y Producción</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <h1>Módulo 3: Seguridad Web y Autenticación Robusta</h1>
+        
+        <div class="intro-box">
+            <h3>📌 Introducción</h3>
+            <p>La autenticación no es solo verificar un usuario y contraseña. Implica proteger el ciclo de vida completo de la sesión, almacenar credenciales con algoritmos de hashing adaptativos y defenderse de ataques que secuestran la identidad del usuario (CSRF, XSS, Session Hijacking).</p>
+        </div>
+
+        <h2>3.1 Configuración Segura de Sesiones</h2>
+        <div class="development">
+            <p>Antes de llamar a <code>session_start()</code>, debemos endurecer la configuración de las cookies de sesión para mitigar el robo de sesiones (Session Hijacking) y ataques XSS.</p>
+            <pre><code class="language-php">// config/session.php (Incluir antes de cualquier output HTML)
+
+// 1. Forzar que la sesión solo use cookies (no acepta session ID por URL)
+ini_set('session.use_only_cookies', 1);
+
+// 2. Prevenir que JavaScript acceda a la cookie de sesión (Defensa contra XSS)
+ini_set('session.cookie_httponly', 1);
+
+// 3. Forzar que la cookie solo se envíe por HTTPS (Descomentar en producción)
+// ini_set('session.cookie_secure', 1);
+
+// 4. Prevenir ataques de Session Fixation
+ini_set('session.use_strict_mode', 1);
+
+// 5. Nombre de sesión personalizado (oculta que es un sitio PHP)
+session_name('SECURE_APP_SESS');
+
+session_start();</code></pre>
+        </div>
+
+        <h2>3.2 Hashing de Contraseñas: Bcrypt vs Argon2</h2>
+        <div class="development">
+            <p>Nunca almacenes contraseñas en texto plano ni uses MD5/SHA1 (son obsoletos y vulnerables a ataques de fuerza bruta con GPUs). PHP ofrece <code>password_hash()</code>, que incluye automáticamente un "salt" aleatorio.</p>
+            <pre><code class="language-php">// REGISTRO DE USUARIO
+$plainPassword = $_POST['password'];
+
+// Opción A: Argon2id (Recomendado en PHP 7.3+). Resistente a ataques de fuerza bruta y side-channel.
+$options = [
+    'memory_cost' => 65536, // 64 MB
+    'time_cost'   => 4,     // 4 iteraciones
+    'threads'     => 3,     // 3 hilos
+];
+$hash = password_hash($plainPassword, PASSWORD_ARGON2ID, $options);
+
+// Opción B: Bcrypt (Fallback seguro y ampliamente compatible)
+// $hash = password_hash($plainPassword, PASSWORD_DEFAULT, ['cost' => 12]);
+
+// Guardar $hash en la base de datos (campo VARCHAR 255)</code></pre>
+            <pre><code class="language-php">// VERIFICACIÓN EN LOGIN
+$stmt = $db->prepare("SELECT id, password_hash, role FROM usuarios WHERE email = :email");
+$stmt->execute(['email' => $_POST['email']]);
+$user = $stmt->fetch();
+
+if ($user && password_verify($_POST['password'], $user['password_hash'])) {
+    // ✅ Contraseña correcta
+    
+    // 1. Regenerar ID de sesión para prevenir Session Fixation
+    session_regenerate_id(true);
+    
+    // 2. Establecer variables de sesión
+    $_SESSION['user_id'] = $user['id'];
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['last_activity'] = time();
+    
+    // Redirigir al dashboard
+    header("Location: /dashboard");
+    exit;
+} else {
+    // ❌ Mensaje genérico. NUNCA revelar si el email existe o no.
+    $error = "Credenciales de acceso inválidas.";
+}</code></pre>
+        </div>
+
+        <div class="hack-case">
+            <h4>🕵️‍♂️ Caso de Hackeo: Cross-Site Request Forgery (CSRF)</h4>
+            <p>Un atacante envía un correo a una víctima autenticada con una imagen oculta: <code>&lt;img src="https://tubanco.com/transferir.php?cuenta=atacante&monto=1000"&gt;</code>. El navegador de la víctima carga la imagen, enviando sus cookies de sesión válidas, y la transferencia se ejecuta sin su consentimiento.</p>
+        </div>
+
+        <div class="defense">
+            <h4>🛡️ La Defensa: Tokens CSRF Synchronizer</h4>
+            <p>Generamos un token criptográficamente seguro por sesión y lo exigimos en cada formulario POST. El atacante no puede adivinar este token porque está protegido por la Same-Origin Policy del navegador.</p>
+            <pre><code class="language-php">// 1. Generar token (en bootstrap o al cargar el formulario)
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// 2. Inyectar en el formulario HTML
+&lt;input type="hidden" name="csrf_token" value="&lt;?= htmlspecialchars($_SESSION['csrf_token']) ?&gt;"&gt;
+
+// 3. Validar en el Controlador al recibir el POST
+if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    http_response_code(403);
+    die("Error de seguridad: Solicitud no autorizada (CSRF).");
+}</code></pre>
+        </div>
+
+        <h2>3.3 Prevención de XSS (Cross-Site Scripting)</h2>
+        <div class="development">
+            <p>XSS ocurre cuando datos no confiables se interpretan como código ejecutable por el navegador. La regla es: <strong>Sanitizar al entrar (validación), escapar al salir (presentación)</strong>.</p>
+            <pre><code class="language-php">// Al MOSTRAR datos en HTML, SIEMPRE usar htmlspecialchars
+$nombre_usuario = $_SESSION['nombre']; // Podría contener &lt;script&gt;...
+echo "&lt;p&gt;Hola, " . htmlspecialchars($nombre_usuario, ENT_QUOTES | ENT_HTML5, 'UTF-8') . "&lt;/p&gt;";
+
+// ENT_QUOTES convierte tanto comillas dobles como simples.
+// ENT_HTML5 asegura compatibilidad con entidades HTML5.</code></pre>
+        </div>
+
+        <div class="tips-section">
+            <h3>💡 Conclusiones y Consejos Profesionales</h3>
+            <ul>
+                <li><strong>Logout Seguro:</strong> Un logout correcto debe incluir: <code>$_SESSION = [];</code>, <code>session_destroy();</code> y borrar la cookie de sesión con <code>setcookie(session_name(), '', time() - 3600, '/');</code>.</li>
+                <li><strong>Rate Limiting:</strong> Para prevenir fuerza bruta, implementa un contador de intentos fallidos en la base de datos o Redis. Bloquea la cuenta o la IP tras 5 intentos fallidos.</li>
+                <li><strong>2FA (Doble Factor):</strong> Para aplicaciones sensibles, el password no es suficiente. Implementa TOTP (códigos de 6 dígitos) usando librerías como <code>spomky-labs/otphp</code>.</li>
+            </ul>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

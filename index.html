@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo 1: Anatomía del Proyecto | PHP Profesional</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+    <aside class="sidebar">
+        <h2>🛡️ PHP Profesional</h2>
+        <nav>
+            <a href="index.html">1. Anatomía y Estructura</a>
+            <a href="base-datos.html">2. Base de Datos Avanzada</a>
+            <a href="seguridad.html">3. Seguridad y Autenticación</a>
+            <a href="arquitectura.html">4. Arquitectura y Validación</a>
+            <a href="recursos.html">5. Checklist y Producción</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <h1>Módulo 1: Anatomía de un Proyecto PHP Profesional</h1>
+        
+        <div class="intro-box">
+            <h3>📌 Introducción</h3>
+            <p>En el desarrollo académico, es común ver archivos <code>index.php</code> de 500 líneas que mezclan HTML, lógica de negocio y consultas SQL. En la industria, esto es inmantenible e inseguro. Este módulo establece las bases de una arquitectura escalable, centrada en la <strong>separación de responsabilidades</strong> y el <strong>punto único de entrada</strong> (Front Controller).</p>
+        </div>
+
+        <h2>1.1 El Patrón Front Controller</h2>
+        <div class="development">
+            <p>En lugar de tener <code>login.php</code>, <code>registro.php</code> y <code>perfil.php</code> como archivos físicos accesibles, configuramos el servidor web para que <strong>toda</strong> petición pase por un único archivo: <code>public/index.php</code>. Este archivo actúa como un "despachador" (dispatcher).</p>
+            <pre><code class="language-php">// public/index.php
+declare(strict_types=1);
+
+// 1. Cargar configuración y autoloader
+require_once __DIR__ . '/../config/bootstrap.php';
+
+// 2. Enrutamiento básico (Simplificado para fines didácticos)
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$method = $_SERVER['REQUEST_METHOD'];
+
+// 3. Despacho al controlador correspondiente
+if ($uri === '/usuarios' && $method === 'GET') {
+    $controller = new App\Controllers\UsuarioController();
+    $controller->index();
+} else {
+    http_response_code(404);
+    echo "404 - Ruta no encontrada";
+}</code></pre>
+        </div>
+
+        <h2>1.2 Autoloading Nativo (PSR-4 sin Composer)</h2>
+        <div class="development">
+            <p>Para evitar decenas de <code>require_once</code>, PHP ofrece <code>spl_autoload_register</code>. Esta función intercepta la instanciación de una clase y carga el archivo automáticamente basándose en su namespace.</p>
+            <pre><code class="language-php">// config/autoload.php
+spl_autoload_register(function (string $class) {
+    // Mapear el namespace "App\" a la carpeta "app/"
+    $prefix = 'App\\';
+    $base_dir = __DIR__ . '/../app/';
+
+    // ¿La clase usa el namespace prefix?
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return; // No, salir
+    }
+
+    // Obtener el nombre de la clase relativo al prefix
+    $relative_class = substr($class, $len);
+
+    // Reemplazar el separador de namespace por el separador de directorio
+    $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
+
+    // Si el archivo existe, cargarlo
+    if (file_exists($file)) {
+        require $file;
+    }
+});</code></pre>
+        </div>
+
+        <h2>1.3 Estructura de Directorios Segura</h2>
+        <div class="development">
+            <ul style="margin-left: 1.5rem; color: var(--text-secondary);">
+                <li><code>/public</code>: <strong>Única carpeta expuesta a la web.</strong> Contiene <code>index.php</code>, CSS, JS e imágenes. El servidor web (Apache/Nginx) debe apuntar su "Document Root" aquí.</li>
+                <li><code>/app</code>: Lógica de negocio. Inaccesible directamente vía HTTP. Contiene <code>Controllers/</code>, <code>Models/</code>, <code>Views/</code>.</li>
+                <li><code>/config</code>: Archivos de configuración y el <code>bootstrap.php</code> que inicia la aplicación.</li>
+                <li><code>/storage</code>: Fuera del directorio público. Aquí van los <code>logs/</code> y los <code>uploads/</code> de usuarios (evita que ejecuten scripts PHP subidos).</li>
+            </ul>
+        </div>
+
+        <div class="tips-section">
+            <h3>💡 Conclusiones y Consejos Profesionales</h3>
+            <ul>
+                <li><strong>Regla de oro:</strong> Si un archivo PHP no necesita ser accedido directamente por una URL, <strong>no</strong> debe estar en la carpeta <code>public/</code>.</li>
+                <li><strong>Namespaces:</strong> Usar <code>namespace App\Controllers;</code> en la parte superior de cada archivo es obligatorio para que el autoloader funcione. El nombre del archivo debe coincidir exactamente con el nombre de la clase (ej: <code>UsuarioController.php</code>).</li>
+                <li><strong>Tipado estricto:</strong> Inicia siempre tus archivos con <code>declare(strict_types=1);</code> para forzar la coherencia de tipos de datos y prevenir bugs silenciosos.</li>
+            </ul>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

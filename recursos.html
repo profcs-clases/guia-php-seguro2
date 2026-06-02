@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo 5: Recursos | PHP Profesional</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+    <aside class="sidebar">
+        <h2>🛡️ PHP Profesional</h2>
+        <nav>
+            <a href="index.html">1. Anatomía y Estructura</a>
+            <a href="base-datos.html">2. Base de Datos Avanzada</a>
+            <a href="seguridad.html">3. Seguridad y Autenticación</a>
+            <a href="arquitectura.html">4. Arquitectura y Validación</a>
+            <a href="recursos.html">5. Checklist y Producción</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <h1>Módulo 5: Checklist de Despliegue y Recursos</h1>
+        
+        <div class="intro-box">
+            <h3>📌 Introducción</h3>
+            <p>El paso de desarrollo a producción es crítico. Un error de configuración puede exponer toda la base de datos. Esta página contiene un checklist imprimible y recursos para continuar tu formación como ingeniero de software.</p>
+        </div>
+
+        <h2>✅ Checklist de Seguridad para Producción</h2>
+        <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 0.75rem; margin-bottom: 2rem; border: 1px solid rgba(128,128,128,0.2);">
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>Las credenciales de la BD están en un archivo <code>.env</code> o <code>config.php</code> fuera del directorio <code>public/</code> y están en <code>.gitignore</code>.</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>Todas las contraseñas se almacenan usando <code>password_hash()</code> con Argon2id o Bcrypt (cost >= 12).</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>Todas las consultas SQL utilizan <code>prepare()</code> y <code>execute()</code> con parámetros nombrados o posicionales.</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span><code>PDO::ATTR_EMULATE_PREPARES</code> está establecido explícitamente en <code>false</code>.</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>Todos los formularios POST incluyen un token CSRF y el servidor lo valida con <code>hash_equals()</code>.</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>Toda salida de datos dinámicos en HTML utiliza <code>htmlspecialchars($var, ENT_QUOTES | ENT_HTML5, 'UTF-8')</code>.</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span><code>display_errors = 0</code> y <code>log_errors = 1</code> en la configuración de PHP de producción.</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>Se ejecuta <code>session_regenerate_id(true)</code> inmediatamente después de un cambio de privilegios (login/logout).</span>
+            </label>
+            <label class="checklist-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; cursor: pointer; align-items: flex-start;">
+                <input type="checkbox" style="margin-top: 0.3rem;"> 
+                <span>La carpeta de uploads tiene un <code>.htaccess</code> que deniega la ejecución de archivos PHP (<code>php_flag engine off</code>).</span>
+            </label>
+        </div>
+
+        <h2>📚 Glosario Técnico Esencial</h2>
+        <ul style="color: var(--text-secondary); line-height: 1.8; margin-left: 1.5rem;">
+            <li><strong>Front Controller:</strong> Patrón de diseño donde un único script (ej: <code>index.php</code>) maneja todas las peticiones HTTP, centralizando la seguridad y el enrutamiento.</li>
+            <li><strong>Session Fixation:</strong> Ataque donde un atacante fuerza a la víctima a usar un ID de sesión conocido. Se previene con <code>session_regenerate_id(true)</code> al autenticar.</li>
+            <li><strong>Salting:</strong> Añadir una cadena aleatoria única a cada contraseña antes de hashearla. Previene que dos usuarios con la misma contraseña tengan el mismo hash y neutraliza los ataques con "Rainbow Tables".</li>
+            <li><strong>Middleware:</strong> Código que se ejecuta en el "medio" de la petición HTTP, antes de llegar al controlador final, ideal para autenticación y logging.</li>
+        </ul>
+
+        <div class="info-banner" style="background: var(--info-bg); border: 1px solid var(--info-border); padding: 1.5rem; border-radius: 0.75rem; margin-top: 3rem;">
+            <h4 style="color: var(--info-text); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">ℹ️ Cultura Profesional (Informativo / No Evaluable)</h4>
+            <p style="color: var(--info-text); margin-bottom: 1rem;"><em>Dominar estos conceptos te dará una ventaja competitiva masiva en tu primer empleo, aunque no sean requisito para aprobar esta cátedra:</em></p>
+            <ul style="margin-left: 1.5rem; color: var(--info-text); line-height: 1.8;">
+                <li><strong>Composer y Autoloading PSR-4:</strong> En la industria, no escribimos el <code>spl_autoload_register</code> a mano. Usamos <code>composer init</code> y <code>composer dump-autoload</code>.</li>
+                <li><strong>Variables de Entorno (.env):</strong> Usa la librería <code>vlucas/phpdotenv</code> para cargar credenciales desde un archivo <code>.env</code> que <strong>nunca</strong> se sube a Git.</li>
+                <li><strong>Git Workflow:</strong> Trabaja en ramas <code>feature/nombre</code>. Nunca hagas push directo a <code>main</code>. Usa Pull Requests para revisión de código.</li>
+                <li><strong>Testing:</strong> Familiarízate con <code>PHPUnit</code> o <code>Pest</code>. Escribir pruebas unitarias para tus modelos y validadores es el sello de un ingeniero senior.</li>
+                <li><strong>Xdebug:</strong> Instala esta extensión de PHP. Te permite poner "breakpoints" en tu código y ejecutar línea por línea desde tu IDE (VS Code / PhpStorm), en lugar de usar <code>var_dump()</code>.</li>
+            </ul>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</body>
+</html>

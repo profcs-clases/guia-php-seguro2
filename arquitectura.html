@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo 4: Arquitectura | PHP Profesional</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+</head>
+<body>
+    <button class="theme-toggle" id="theme-toggle">🌙</button>
+    <aside class="sidebar">
+        <h2>🛡️ PHP Profesional</h2>
+        <nav>
+            <a href="index.html">1. Anatomía y Estructura</a>
+            <a href="base-datos.html">2. Base de Datos Avanzada</a>
+            <a href="seguridad.html">3. Seguridad y Autenticación</a>
+            <a href="arquitectura.html">4. Arquitectura y Validación</a>
+            <a href="recursos.html">5. Checklist y Producción</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <h1>Módulo 4: Arquitectura por Capas y Validación</h1>
+        
+        <div class="intro-box">
+            <h3>📌 Introducción</h3>
+            <p>Un proyecto profesional separa la lógica de enrutamiento (Controller), la manipulación de datos (Model) y la presentación (View). Además, la validación de datos debe ser centralizada, reutilizable y ocurrir estrictamente en el servidor, independientemente de cualquier validación en JavaScript.</p>
+        </div>
+
+        <h2>4.1 Flujo de Datos MVC en la Práctica</h2>
+        <div class="development">
+            <ol style="margin-left: 1.5rem; color: var(--text-secondary); line-height: 1.8;">
+                <li><strong>Request:</strong> El usuario envía un POST a <code>/usuarios/crear</code>.</li>
+                <li><strong>Controller:</strong> <code>UsuarioController@crear</code> recibe el <code>$_POST</code>. Llama a la clase <code>Validator</code>. Si falla, redirige con "Flash Messages". Si pasa, llama al <code>Model</code>.</li>
+                <li><strong>Model:</strong> <code>UsuarioModel</code> recibe los datos limpios, hashea la contraseña y ejecuta la consulta PDO preparada.</li>
+                <li><strong>View:</strong> El Controller carga <code>views/usuarios/exito.php</code>, pasando solo las variables necesarias para renderizar.</li>
+            </ol>
+        </div>
+
+        <h2>4.2 Clase Validadora Reutilizable</h2>
+        <div class="development">
+            <p>En lugar de repetir <code>if (empty(...))</code>, creamos una clase estática que acumula errores y valida reglas comunes.</p>
+            <pre><code class="language-php">namespace App\Utils;
+
+class Validator {
+    private static array $errors = [];
+
+    public static function isRequired(string $field, mixed $value): bool {
+        if (empty(trim((string)$value))) {
+            self::$errors[$field] = "El campo $field es obligatorio.";
+            return false;
+        }
+        return true;
+    }
+
+    public static function isEmail(string $field, string $value): bool {
+        if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            self::$errors[$field] = "El campo $field debe ser un correo electrónico válido.";
+            return false;
+        }
+        return true;
+    }
+
+    public static function isCedula(string $field, string $value): bool {
+        // Ejemplo: Validación de cédula venezolana (V-12345678 o E-12345678)
+        if (!preg_match('/^[VEve]-?\d{7,8}$/', $value)) {
+            self::$errors[$field] = "Formato de cédula inválido (Ej: V-12345678).";
+            return false;
+        }
+        return true;
+    }
+
+    public static function getErrors(): array {
+        return self::$errors;
+    }
+
+    public static function isValid(): bool {
+        return empty(self::$errors);
+    }
+    
+    public static function clear(): void {
+        self::$errors = [];
+    }
+}</code></pre>
+            <p><strong>Uso en el Controlador:</strong></p>
+            <pre><code class="language-php">Validator::clear();
+Validator::isRequired('email', $_POST['email']);
+Validator::isEmail('email', $_POST['email']);
+Validator::isCedula('cedula', $_POST['cedula']);
+
+if (!Validator::isValid()) {
+    // Guardar errores en sesión (Flash Message) y redirigir
+    $_SESSION['errors'] = Validator::getErrors();
+    $_SESSION['old_input'] = $_POST; // Para repoblar el formulario
+    header("Location: /registro");
+    exit;
+}</code></pre>
+        </div>
+
+        <h2>4.3 Middleware de Control de Acceso por Roles (RBAC)</h2>
+        <div class="development">
+            <p>Los middlewares interceptan la petición antes de que llegue a la lógica del controlador.</p>
+            <pre><code class="language-php">namespace App\Middleware;
+
+class RoleMiddleware {
+    public static function handle(array $allowedRoles): void {
+        if (!isset($_SESSION['user_id'])) {
+            header("Location: /login");
+            exit;
+        }
+
+        if (!in_array($_SESSION['role'], $allowedRoles, true)) {
+            http_response_code(403);
+            // Cargar vista de "Acceso Denegado"
+            require __DIR__ . '/../../app/Views/errors/403.php';
+            exit;
+        }
+    }
+}
+
+// Uso en el Controller:
+// RoleMiddleware::handle(['admin', 'supervisor']);</code></pre>
+        </div>
+
+        <h2>4.4 Depuración Profesional (Debugging) y Logs</h2>
+        <div class="development">
+            <p>Usar <code>var_dump()</code> y <code>die()</code> es aceptable en desarrollo local, pero inaceptable en producción. Debemos configurar un sistema de logs.</p>
+            <pre><code class="language-php">// config.php (Entorno de Producción)
+ini_set('display_errors', 0);          // NUNCA mostrar errores al usuario final
+ini_set('log_errors', 1);              // Activar registro en archivo
+ini_set('error_log', __DIR__ . '/../storage/logs/app_errors.log');
+
+// Función helper para logging estructurado
+function log_audit(string $action, array $context = []): void {
+    $logEntry = sprintf(
+        "[%s] %s | User: %s | IP: %s | Details: %s\n",
+        date('Y-m-d H:i:s'),
+        $action,
+        $_SESSION['user_id'] ?? 'GUEST',
+        $_SERVER['REMOTE_ADDR'],
+        json_encode($context)
+    );
+    error_log($logEntry, 3, __DIR__ . '/../storage/logs/audit.log');
+}
+
+// Uso:
+// log_audit('INTENTO_LOGIN_FALLIDO', ['email' => $_POST['email']]);</code></pre>
+        </div>
+
+        <div class="tips-section">
+            <h3>💡 Conclusiones y Consejos Profesionales</h3>
+            <ul>
+                <li><strong>Flash Messages:</strong> Son mensajes de sesión que se borran inmediatamente después de leerse una vez. Ideales para "Registro exitoso" o "Error de validación".</li>
+                <li><strong>Subida de Archivos:</strong> Nunca confíes en <code>$_FILES['archivo']['type']</code> (el cliente puede falsificarlo). Usa <code>finfo_file()</code> para verificar el MIME type real del contenido del archivo. Guarda los archivos fuera de <code>/public</code> o con nombres aleatorios (UUID) sin extensión ejecutable.</li>
+                <li><strong>Principio de Menor Privilegio:</strong> La cuenta de usuario de la base de datos que usa PHP solo debe tener permisos <code>SELECT, INSERT, UPDATE, DELETE</code> en las tablas necesarias. Nunca usar el usuario <code>root</code> en producción.</li>
+            </ul>
+        </div>
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
